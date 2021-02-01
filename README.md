@@ -1,8 +1,8 @@
 ## TO DO :
 
-## Verification system {}
+## Verification system {X}
 
-## Kick and Ban system {}
+## Kick and Ban system {X}
 
 ## Update system {}
 
@@ -12,20 +12,4 @@
 
 ## Kick and Ban commands {X}
 
-## TO DO
-
-## TO DO
-
-## TO DO
-
-## TO DO
-
-## TO DO
-
-## TO DO
-
-## TO DO
-
-## TO DO
-
-## TO DO
+## fuck lua

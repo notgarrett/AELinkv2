@@ -1,59 +1,11 @@
 import mongoose from "mongoose";
-import { ProfileSchema } from "../models/ProfileModel";
 import { VerificationSchema } from "../models/VerificationModel";
-import {
-  notification,
-  success,
-  failure,
-  verification,
-} from "../embeds/embedFunctions";
+import { identifyDiscordProfile } from "../functions/identifyProfile";
+import { makeKey } from "../functions/makeKey";
+import { notification, verification, failure } from "../embeds/embedFunctions";
+import { checkVerifyKey } from "../functions/checkVerifyKey";
 
-const User = mongoose.model("Users", ProfileSchema);
-const Verification = mongoose.model("Verificaiton", VerificationSchema);
-
-const identifyProfile = async (discordMemberId, msg) => {
-  return new Promise((resolve, reject) => {
-    User.exists({ DiscordId: discordMemberId }, (err, doc) => {
-      if (err) throw err;
-      if (doc) {
-        console.log(doc);
-        resolve(true);
-      }
-      resolve(false);
-    });
-  });
-};
-
-const checkExistingCode = async (discordMemberId, msg) => {
-  return new Promise((resolve, reject) => {
-    Verification.findOne({ DiscordId: discordMemberId }, (err, doc) => {
-      if (err) throw err;
-      if (doc) {
-        console.log(doc);
-        notification(
-          msg.channel,
-          "Notification",
-          "You have been DM'd with your verification key!"
-        );
-        verification(msg.author, doc.VerificationKey);
-        resolve(true);
-      }
-      resolve(false);
-    });
-  });
-};
-
-function makeKey(length) {
-  // Generates random key for users
-  var result = "";
-  var characters =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  var charactersLength = characters.length;
-  for (var i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * charactersLength));
-  }
-  return result;
-}
+const Verification = mongoose.model("Verification", VerificationSchema);
 
 module.exports = {
   name: "verify",
@@ -64,14 +16,26 @@ module.exports = {
     // Database checks to be sure the user isn't already verified.
 
     console.log("Checking profiles");
-    if (await identifyProfile(serverMember.id, msg)) {
+
+    let existingProfile = await identifyDiscordProfile(serverMember.id);
+
+    if (existingProfile) {
       console.log("User has a profile already.");
+      failure(msg.channel, "Already Verified!", "You are already verified!");
       return;
     }
 
+    let existingKey = await checkVerifyKey(serverMember.id);
+
     console.log("Checking verification codes");
-    if (await checkExistingCode(serverMember.id, msg)) {
+    if (existingKey) {
       console.log("User already has a verification code.");
+      notification(
+        msg.channel,
+        "Notification",
+        "You have been DM'd with your verification key!"
+      );
+      verification(msg.author, existingKey.VerificationKey);
       return;
     }
 
@@ -85,7 +49,7 @@ module.exports = {
       DiscordId: serverMember.id,
     });
 
-    newVerification.save((err, verification) => {
+    newVerification.save((err, verifications) => {
       if (err) {
         console.error(err);
       }
@@ -94,7 +58,7 @@ module.exports = {
         "Notification",
         "You have been DM'd with your verification key!"
       );
-      verification(msg.author, verification.VerificationKey);
+      verification(msg.author, verifications.VerificationKey);
     });
   },
 };
